@@ -1,0 +1,2262 @@
+{
+  "name": "CAFE AI — Production Template — Sarvam + WhatsApp + n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/whatsapp/incoming",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "013df171-8384-45d4-977a-7777b4bb2676",
+      "name": "WHATSAPP — Incoming",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        192
+      ],
+      "webhookId": "27220f24-1fea-4d4b-9824-4da6e53e7632"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json;\nconst m=b.messages?.[0]??b.message??b;\nconst c=b.contacts?.[0]??{};\nreturn [{json:{phone:m.from??b.from??b.phone??\"\",name:c.profile?.name??b.name??\"\",text:m.text?.body??m.text??b.text??\"\",raw:b}}];"
+      },
+      "id": "6602e1a5-bf8d-4524-b3f3-57883b12137a",
+      "name": "Normalize WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.sarvam.ai/v1/chat/completions",
+        "options": {},
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api-subscription-key",
+              "value": "={{$env.SARVAM_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "6c6f5fa2-a5c4-45cb-94c8-3cdf51c91679",
+      "name": "Sarvam — AI Router",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$json.choices?.[0]?.message?.content??\"{}\";\nlet a; try{a=typeof c===\"string\"?JSON.parse(c):c}catch(e){a={intent:\"HUMAN\",reply:\"I’m connecting you with our team.\",entities:{}}}\nreturn [{json:{...$('Normalize WhatsApp').item.json,...a}}];"
+      },
+      "id": "8053290e-5da0-437f-b1a6-3ab45e9f426e",
+      "name": "Parse AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        192
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "20b41f71-43bc-49ab-b190-810f7233827c",
+      "name": "Intent Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/tables/availability'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "b7f5d277-b93b-4b31-ad9e-47796eb7fdd0",
+      "name": "Booking — Check Availability",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/reservations'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "ec4fd2fc-1208-45ed-a2e3-7775fcf3ada0",
+      "name": "Booking — Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "1a8235e9-2d9b-41b0-8838-1cce5047ab7d",
+      "name": "Booking — Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/quote'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "0342d0e3-9ed8-45c0-af23-81e162dd1617",
+      "name": "Order — Quote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.PAYMENT_CREATE_URL||'https://YOUR-PAYMENT-SERVICE.example.com/create'}}",
+        "options": {}
+      },
+      "id": "3c98a428-ea64-4c6e-952b-40b35323724e",
+      "name": "Order — Payment Link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "5d92421f-f131-499c-a201-ed66627e5a5b",
+      "name": "Order — Payment Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/'+($json.entities?.order_id||'')}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "6adcbaf4-d72f-4c83-86b6-405f2f9048a7",
+      "name": "Status — Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        0,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "c7d31be4-8ad5-4f54-9e84-c58d81574e6c",
+      "name": "Status — Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        224,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/feedback'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "a57bd56f-7228-4894-8444-09ee33f4cd5a",
+      "name": "Feedback — Save",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        0,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.MANAGER_ALERT_WEBHOOK||'https://YOUR-N8N.example.com/webhook/cafe/manager-alert'}}",
+        "options": {}
+      },
+      "id": "936dd0a3-854e-46f0-a82e-feb4cb5b3879",
+      "name": "Feedback — Manager Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        224,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "822c6590-f4fa-480f-ae9b-980b8f3852d4",
+      "name": "Generic WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        0,
+        720
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "d1f44420-424e-46e3-9799-3b327da87047",
+      "name": "WhatsApp — Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        672,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9c50d466-e1b8-4c4e-874f-6755459144d8",
+      "name": "SARVAM TOOL — Check Availability",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        944
+      ],
+      "webhookId": "cb6e0120-5f86-4cfe-921b-6bbc42a38fb1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json; return [{json:{available:true,date:b.date??\"\",time:b.time??\"\",guests:Number(b.guests??2),alternatives:[]}}];"
+      },
+      "id": "c9590615-3620-48ee-8edc-b1351c04354d",
+      "name": "SARVAM TOOL — Check Availability — Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        944
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b572bb72-218d-4a62-9d96-f2f57f311f8d",
+      "name": "SARVAM TOOL — Check Availability — Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/create-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2560b27a-9b9b-464c-8b22-e0c5887cbdec",
+      "name": "SARVAM TOOL — Create Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1152
+      ],
+      "webhookId": "61f38643-ef07-4a16-91da-2bc1ee53551a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json; return [{json:{success:true,reservation_id:\"RES-\"+Date.now(),name:b.name??\"\",phone:b.phone??\"\",date:b.date??\"\",time:b.time??\"\",guests:Number(b.guests??2)}}];"
+      },
+      "id": "163eb3f3-34f2-457e-aa97-aa98eac6854c",
+      "name": "SARVAM TOOL — Create Booking — Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1152
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "3bb8be5f-1617-4bfd-89d1-ac0426f8036d",
+      "name": "SARVAM TOOL — Create Booking — Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/menu",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3e1fbfa7-87f7-489a-87a0-2f82087725c5",
+      "name": "SARVAM TOOL — Menu",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1344
+      ],
+      "webhookId": "fed780a8-6d5f-47ff-b103-9f925ae82e7d"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{currency:\"INR\",categories:[{name:\"Coffee\",items:[{name:\"Cappuccino\",price:180},{name:\"Cold Coffee\",price:160}]},{name:\"Food\",items:[{name:\"Paneer Sandwich\",price:220},{name:\"Margherita Pizza\",price:350}]}]}}];"
+      },
+      "id": "9ee04241-78be-4524-9f70-e24fe2b4d09e",
+      "name": "SARVAM TOOL — Menu — Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1344
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5846f3b2-3fb9-49b3-9820-40babcaed879",
+      "name": "SARVAM TOOL — Menu — Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        1344
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/order-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9841e3e1-8afc-4360-aa75-818e5a50564c",
+      "name": "SARVAM TOOL — Order Status",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1552
+      ],
+      "webhookId": "09b2ca60-e581-481b-b47b-65a26c5c88dd"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json; return [{json:{order_id:b.order_id??\"\",status:\"REPLACE_WITH_LIVE_STATUS\",eta_minutes:null}}];"
+      },
+      "id": "d40eee96-5896-44f7-9ef9-f1731890a20e",
+      "name": "SARVAM TOOL — Order Status — Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1552
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "cf81ca2e-178a-4f0a-8c4e-2b8606888876",
+      "name": "SARVAM TOOL — Order Status — Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        1552
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/payment/webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ef5d82a0-0c0f-42f6-89d6-d8678c656736",
+      "name": "PAYMENT — Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        944
+      ],
+      "webhookId": "0582a58a-64a1-4367-b132-ef7180e61322"
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/payment-confirmed'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "1fa51d55-1a02-4bf3-8a72-c5278530403c",
+      "name": "Payment — Confirm Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.KITCHEN_WEBHOOK||'https://YOUR-N8N.example.com/webhook/cafe/kitchen'}}",
+        "options": {}
+      },
+      "id": "8c48d9a7-caa5-4d01-a6b9-170a5c7fab82",
+      "name": "Payment — Kitchen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        48,
+        944
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "54c30c18-5b12-4ae6-992a-bd3aa799991a",
+      "name": "Payment — Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 2,
+      "position": [
+        272,
+        944
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "50bfd58e-641f-4eec-b4cd-f8c590419cb2",
+      "name": "DAILY — Retention",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/customers/inactive?days=30'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "b4fdad2d-9994-4279-b9b9-be746dc4cf1d",
+      "name": "Retention — Get Inactive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "5fb604ca-7500-43a4-a53f-b66e2e6d83be",
+      "name": "Retention — Campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        48,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d=$json;\nconst valid=[\"BOOKING\",\"ORDER\",\"STATUS\",\"FEEDBACK\",\"OTHER\"];\nconst intent=valid.includes(d.intent)?d.intent:\"OTHER\";\nreturn [{json:{...d,intent}}];"
+      },
+      "id": "36b5dea0-371b-4b9a-8a76-06cab504102b",
+      "name": "Normalize Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json;\nreturn [{json:{\n  payment_id:b.payment_id??b.id??\"\",\n  order_id:b.order_id??b.notes?.order_id??\"\",\n  status:b.status??b.payment_status??\"\",\n  amount:b.amount??0,\n  phone:b.phone??b.contact??\"\"\n}}];"
+      },
+      "id": "80f1b168-b2cd-4917-ae39-5d5cb7763c7e",
+      "name": "Payment — Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -944,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/order/completed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "18d44bfd-c4d7-41d9-ba0e-4ffb4902b2a9",
+      "name": "ORDER COMPLETED — Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1168,
+        4704
+      ],
+      "webhookId": "711176a8-52a2-4260-b11b-bbedf3a4f0ad"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL||'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({messaging_product:'whatsapp',to:(($json.body??$json).phone||''),type:'text',text:{body:'Thanks for visiting us! ☕ Please rate your experience from 1 to 5 and share any feedback.'}})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "69bd6f14-2165-4dc1-b304-db0fe85f242d",
+      "name": "Order Complete — Feedback WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -912,
+        4704
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ok:true})}}",
+        "options": {}
+      },
+      "id": "0e499903-944c-4a4b-8dbd-ea47e4db4630",
+      "name": "Order Complete — Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -672,
+        4704
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/whatsapp/incoming",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "900e8f35-7e14-4876-ac21-218d4969a3dc",
+      "name": "WHATSAPP — Incoming1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1888,
+        3536
+      ],
+      "webhookId": "e1906be6-d531-42e7-9b9a-e958001cce1f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json;\nconst m=b.messages?.[0]??b.message??b;\nconst c=b.contacts?.[0]??{};\nreturn [{json:{phone:m.from??b.from??b.phone??\"\",name:c.profile?.name??b.name??\"\",text:m.text?.body??m.text??b.text??\"\",raw:b}}];"
+      },
+      "id": "97da8621-e183-4f48-86c9-a3ede61b9d38",
+      "name": "Normalize WhatsApp1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1664,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({model:'sarvam-105b-conversations',temperature:0.2,messages:[{role:'system',content:\"You are the AI WhatsApp receptionist for the cafe.\\nReply in the customer's language or Hinglish, briefly and politely.\\nHandle table booking, menu questions, orders, order status, FAQs, feedback and human handoff.\\nReturn ONLY JSON:\\n{\\\"intent\\\":\\\"BOOKING|ORDER|MENU|STATUS|FAQ|FEEDBACK|HUMAN|OTHER\\\",\\\"reply\\\":\\\"...\\\",\\\"entities\\\":{\\\"date\\\":\\\"\\\",\\\"time\\\":\\\"\\\",\\\"guests\\\":2,\\\"items\\\":[],\\\"order_id\\\":\\\"\\\",\\\"rating\\\":\\\"\\\"}}\\nNever invent availability, prices, menu items or order status.\"},{role:'user',content:$json.text||''}],response_format:{type:'json_object'}})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api-subscription-key",
+              "value": "={{$env.SARVAM_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "322dca36-64af-49aa-a06e-fdd9d31c439a",
+      "name": "Sarvam — AI Router1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1456,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$json.choices?.[0]?.message?.content??\"{}\";\nlet a; try{a=typeof c===\"string\"?JSON.parse(c):c}catch(e){a={intent:\"HUMAN\",reply:\"I’m connecting you with our team.\",entities:{}}}\nreturn [{json:{...$('Normalize WhatsApp1').item.json,...a}}];"
+      },
+      "id": "4f98bd77-949d-49aa-b6e3-0d6894bc50bc",
+      "name": "Parse AI1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1232,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "BOOKING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BOOKING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "ORDER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ORDER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "STATUS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STATUS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "FEEDBACK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FEEDBACK"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "OTHER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OTHER"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "d55c020f-f565-469c-bec0-2322c5bff1ed",
+      "name": "Intent Router1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1008,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/tables/availability'}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{$json.entities?.date||''}}"
+            },
+            {
+              "name": "time",
+              "value": "={{$json.entities?.time||''}}"
+            },
+            {
+              "name": "guests",
+              "value": "={{$json.entities?.guests||2}}"
+            }
+          ]
+        },
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "dcaad100-66e8-4aa8-afa3-01345bf58a12",
+      "name": "Booking — Check Availability1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        3344
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/reservations'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  phone:$('Parse AI1').item.json.phone,\n  name:$('Parse AI1').item.json.name,\n  date:$('Parse AI1').item.json.entities?.date,\n  time:$('Parse AI1').item.json.entities?.time,\n  guests:$('Parse AI1').item.json.entities?.guests\n})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "b031b7ee-ad7a-45a5-bdb9-d82f2aed3a84",
+      "name": "Booking — Create1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        3344
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  messaging_product:'whatsapp',\n  to:$('Parse AI1').item.json.phone,\n  type:'text',\n  text:{body:'Your table booking is confirmed. Booking ID: '+($json.id||$json.reservation_id||'PENDING')+\n    ' for '+($('Parse AI1').item.json.entities?.guests||2)+' guests on '+\n    ($('Parse AI1').item.json.entities?.date||'the requested date')+' at '+\n    ($('Parse AI1').item.json.entities?.time||'the requested time')+'.'}\n})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "a19e2b61-9814-4738-9b56-fc8d623a98c5",
+      "name": "Booking — Confirmation1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        3344
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/quote'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  phone:$json.phone,\n  items:$json.entities?.items||[],\n  source:'whatsapp'\n})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "13d1c7f6-4b18-4e58-a988-b45367dc7202",
+      "name": "Order — Quote1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PAYMENT_CREATE_URL||'https://YOUR-PAYMENT-SERVICE.example.com/create'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({amount:$json.total||$json.amount,phone:$json.phone})}}",
+        "options": {}
+      },
+      "id": "f8c35f67-d297-4062-92db-72818ede9fac",
+      "name": "Order — Payment Link1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({messaging_product:'whatsapp',to:$json.phone,type:'text',text:{body:'Your order total is ₹'+($json.total||$json.amount||0)+'. Pay here: '+($json.payment_url||$json.url||'PAYMENT_LINK')}})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "9ad8e7bd-45a7-4ee3-be3f-1811c627312a",
+      "name": "Order — Payment Message1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/'+($json.entities?.order_id||'')}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "47df6f99-f415-49a4-80e2-986cabda320d",
+      "name": "Status — Lookup1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        3712
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({messaging_product:'whatsapp',to:$('Parse AI1').item.json.phone,type:'text',text:{body:'Order '+($json.order_id||'')+' status: '+($json.status||'unknown')}})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "4e8d9f95-22d5-4ba5-b6c3-6218541fa819",
+      "name": "Status — Reply1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        3712
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/feedback'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({phone:$json.phone,rating:$json.entities?.rating,message:$json.text,source:'whatsapp'})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "bc05ce7f-70a6-4b66-9f37-9616273d44a8",
+      "name": "Feedback — Save1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        3888
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.MANAGER_ALERT_WEBHOOK||'https://YOUR-N8N.example.com/webhook/cafe/manager-alert'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({phone:$json.phone,rating:$json.entities?.rating,message:$json.text})}}",
+        "options": {}
+      },
+      "id": "a3c52d9b-eb6f-464c-bf94-d8eeb923ca56",
+      "name": "Feedback — Manager Alert1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        3888
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({messaging_product:'whatsapp',to:$json.phone,type:'text',text:{body:$json.reply||'Thanks! How can I help you today?'}})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "8f5967f9-9d55-4fa2-9791-2138a2b7052a",
+      "name": "Generic WhatsApp Reply1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        4064
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ok:true})}}",
+        "options": {}
+      },
+      "id": "61234fa8-5c68-4f82-ae57-5581ea88da9d",
+      "name": "WhatsApp — Respond ",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -112,
+        4064
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "04d6c91f-234d-4151-a1e0-eea0a1e538a3",
+      "name": "SARVAM TOOL — Check Availability1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1888,
+        4288
+      ],
+      "webhookId": "59f4ed64-697c-4a33-9a50-7d64eb1d1d48"
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/tables/availability'}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{($json.body??$json).date||''}}"
+            },
+            {
+              "name": "time",
+              "value": "={{($json.body??$json).time||''}}"
+            },
+            {
+              "name": "guests",
+              "value": "={{($json.body??$json).guests||2}}"
+            }
+          ]
+        },
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "2fabe5d3-9cec-4f88-8073-93d588daada4",
+      "name": "SARVAM TOOL — Check Availability — Logic1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {}
+      },
+      "id": "83c742ba-760e-4467-acd8-0bb22568141b",
+      "name": "SARVAM TOOL — Check Availability — Response1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1456,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/create-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8d44a1fe-07e9-41a1-b1e9-505aa1e32600",
+      "name": "SARVAM TOOL — Create Booking1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1888,
+        4496
+      ],
+      "webhookId": "cb938943-edd5-400d-80f5-5dae4fa406f4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/reservations'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.body??$json)}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "6376576e-00fd-4547-a0c8-aeb6542ae667",
+      "name": "SARVAM TOOL — Create Booking — Logic1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        4496
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {}
+      },
+      "id": "fe2c774c-0623-40a3-be92-cd374026eb6b",
+      "name": "SARVAM TOOL — Create Booking — Response1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1456,
+        4496
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/menu",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c2889573-3aae-4a4e-afaa-af65e0875029",
+      "name": "SARVAM TOOL — Menu1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1888,
+        4688
+      ],
+      "webhookId": "7269c2c1-dc42-4aef-b60f-dd19ac20a986"
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/menu'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "c1968842-4847-404f-9d21-3bba9e0e98bb",
+      "name": "SARVAM TOOL — Menu — Logic1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        4688
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {}
+      },
+      "id": "303bf07f-3f4a-4173-a311-cbe489f92b94",
+      "name": "SARVAM TOOL — Menu — Response1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1456,
+        4688
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/sarvam/order-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cbb6294b-ce4f-40ab-aff6-f46c3187d7eb",
+      "name": "SARVAM TOOL — Order Status1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1888,
+        4896
+      ],
+      "webhookId": "419a72bf-5d60-4705-b4ca-10e8c6156f04"
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/'+(($json.body??$json).order_id||'')}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "cab54ce0-ce80-494f-9d04-ababa8e5a3f7",
+      "name": "SARVAM TOOL — Order Status — Logic1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        4896
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {}
+      },
+      "id": "3172e34a-896e-4fc7-9ee8-8cafcf878a8d",
+      "name": "SARVAM TOOL — Order Status — Response1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1456,
+        4896
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cafe/payment/webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "343af1f4-9fd0-44e7-bf7f-3fed03608ab1",
+      "name": "PAYMENT — Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1168,
+        4288
+      ],
+      "webhookId": "d2373c11-5188-4ecc-8ed5-61ea2c067b23"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/orders/payment-confirmed'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.body??$json)}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "9fa93754-9801-45bd-8c2d-94d6962b60a2",
+      "name": "Payment — Confirm Order1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -944,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.KITCHEN_WEBHOOK||'https://YOUR-N8N.example.com/webhook/cafe/kitchen'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.body??$json)}}",
+        "options": {}
+      },
+      "id": "255592f0-2013-471f-914b-16fec9bcf4eb",
+      "name": "Payment — Kitchen1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -736,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ok:true})}}",
+        "options": {}
+      },
+      "id": "63f5fac1-8404-48be-99bc-5fe52828a64f",
+      "name": "Payment — Respond1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -512,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "db70ecc4-6e15-4b09-a9bb-50c80c9e8aea",
+      "name": "DAILY — Retention1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1168,
+        4512
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{($env.CAFE_API_BASE_URL||'https://YOUR-CAFE-API.example.com')+'/customers/inactive?days=30'}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{\"Bearer \" + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY)}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "5d6eb184-e9ef-413a-b10b-c2446b8a9915",
+      "name": "Retention — Get Inactive1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -944,
+        4512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WHATSAPP_SEND_URL || 'https://graph.facebook.com/vXX.X/YOUR_PHONE_NUMBER_ID/messages'}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  messaging_product:'whatsapp',\n  to:$json.phone,\n  type:'text',\n  text:{body:'Hi '+($json.name||'there')+'! We miss you ☕ Reply YES to see a special offer. Reply STOP to opt out.'}\n})}}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$env.WHATSAPP_TOKEN ? \"Bearer \" + $env.WHATSAPP_TOKEN : \"\"}}"
+            },
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || \"\"}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "13092be5-b766-40b4-97b9-42ece456d65a",
+      "name": "Retention — Campaign1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -736,
+        4512
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "SARVAM TOOL — Check Availability": {
+      "main": [
+        [
+          {
+            "node": "SARVAM TOOL — Check Availability — Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SARVAM TOOL — Create Booking": {
+      "main": [
+        [
+          {
+            "node": "SARVAM TOOL — Create Booking — Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SARVAM TOOL — Menu": {
+      "main": [
+        [
+          {
+            "node": "SARVAM TOOL — Menu — Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SARVAM TOOL — Order Status": {
+      "main": [
+        [
+          {
+            "node": "SARVAM TOOL — Order Status — Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status — Lookup": {
+      "main": [
+        [
+          {
+            "node": "Status — Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback — Save": {
+      "main": [
+        [
+          {
+            "node": "Feedback — Manager Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI": {
+      "main": [
+        [
+          {
+            "node": "Generic WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PAYMENT — Webhook": {
+      "main": [
+        [
+          {
+            "node": "Payment — Confirm Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment — Confirm Order": {
+      "main": [
+        [
+          {
+            "node": "Payment — Kitchen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retention — Get Inactive": {
+      "main": [
+        [
+          {
+            "node": "Retention — Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Intent": {
+      "main": [
+        [
+          {
+            "node": "Intent Router1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment — Normalize": {
+      "main": [
+        [
+          {
+            "node": "Payment — Confirm Order1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ORDER COMPLETED — Webhook": {
+      "main": [
+        [
+          {
+            "node": "Order Complete — Feedback WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Complete — Feedback WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Order Complete — Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WHATSAPP — Incoming1": {
+      "main": [
+        [
+          {
+            "node": "Normalize WhatsApp1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize WhatsApp1": {
+      "main": [
+        [
+          {
+            "node": "Sarvam — AI Router1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sarvam — AI Router1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Router1": {
+      "main": [
+        [
+          {
+            "node": "Booking — Check Availability1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Order — Quote1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Status — Lookup1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Feedback — Save1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generic WhatsApp Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking — Check Availability1": {
+      "main": [
+        [
+          {
+            "node": "Booking — Create1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking — Create1": {
+      "main": [
+        [
+          {
+            "node": "Booking — Confirmation1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking — Confirmation1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp — Respond ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order — Quote1": {
+      "main": [
+        [
+          {
+            "node": "Order — Payment Link1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order — Payment Link1": {
+      "main": [
+        [
+          {
+            "node": "Order — Payment Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order — Payment Message1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp — Respond ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status — Lookup1": {
+      "main": [
+        [
+          {
+            "node": "Status — Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status — Reply1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp — Respond ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback — Save1": {
+      "main": [
+        [
+          {
+            "node": "Feedback — Manager Alert1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback — Manager Alert1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp — Respond ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generic WhatsApp Reply1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp — Respond ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PAYMENT — Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Payment — Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment — Confirm Order1": {
+      "main": [
+        [
+          {
+            "node": "Payment — Kitchen1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment — Kitchen1": {
+      "main": [
+        [
+          {
+            "node": "Payment — Respond1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DAILY — Retention1": {
+      "main": [
+        [
+          {
+            "node": "Retention — Get Inactive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retention — Get Inactive1": {
+      "main": [
+        [
+          {
+            "node": "Retention — Campaign1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e62a382f-533d-4d7c-a691-fe5705e41400",
+  "meta": {
+    "instanceId": "a2c8529ed1db4fdaeb0467a2ab7db18ff101845640ddf50c2634a24befb8832f"
+  },
+  "id": "hJl3his70xjK9V4n",
+  "tags": []
+}

@@ -1,0 +1,13 @@
+{
+  "name": "brew-co-cafe-management",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "check:apis": "node check_apis.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
